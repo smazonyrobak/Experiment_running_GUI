@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+
+*.lnk
+startup_directories.json
+last_run_*
+GUI_stim_and_cam_launcher_error.log
+
+experimental_results/
+Recording_sessions/
+Saved_GUI_settings/
+Stim_and_cam_savefiles/
+*.mp4
+*.mkv
+*_ffmpeg.log
+*_timestamps.txt

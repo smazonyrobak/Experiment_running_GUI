@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "preset_name": "default_camera",
+  "hardware_trigger": {
+    "com_port": "COM3",
+    "frequency_hz": 60,
+    "pulse_ms": 4,
+    "trigger_source": "Line0",
+    "trigger_activation": "RisingEdge",
+    "mode": "count",
+    "count": 110000,
+    "duration_dd_hh_mm": {
+      "dd": 0,
+      "hh": 0,
+      "mm": 0
+    },
+    "train_length_s": 1833.3333333333333,
+    "train_length_dd_hh_mm": {
+      "dd": 0,
+      "hh": 0,
+      "mm": 30
+    }
+  },
+  "camera_acquisition": {
+    "target_width": 1280,
+    "target_height": 1280,
+    "software_resize_if_needed": false,
+    "encoding_index": 0,
+    "preview_enabled": true,
+    "preview_max_fps": 5,
+    "segment_hours": 1,
+    "capture_fps": 60
+  }
+}

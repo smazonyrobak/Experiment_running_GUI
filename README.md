@@ -53,4 +53,3 @@ Use Somatosensory_stim_Arduino_code.ino for the standard firmware. The no_noise 
 Session output, videos, logs, last-run metadata, machine-specific directories, shortcuts, and Python caches are intentionally excluded by .gitignore.
 
 No software license has been selected for this repository.
-

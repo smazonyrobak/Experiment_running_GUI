@@ -1,0 +1,5 @@
+numpy==1.26.4
+opencv-python==4.11.0.86
+pyserial==3.5
+PySide6==6.11.0
+spinnaker-python==4.3.0.190
