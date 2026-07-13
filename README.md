@@ -9,7 +9,7 @@ Windows GUI for synchronized FLIR camera recording, camera-trigger TTL generatio
 - GUI_for_smyrator.py: somatosensory controller module and standalone stimulation GUI
 - GUI_stim_and_cam_launcher.pyw: no-console Windows launcher
 - default_camera.json and default_smyrator.json: editable hardware presets
-- Arduino_codes/: camera TTL and somatosensory controller firmware
+- Somatosensory_stim_Arduino_code/: the Arduino firmware for the somatosensory stimulus-control hardware
 
 ## Installation
 
@@ -38,15 +38,11 @@ The default data root is %USERPROFILE%\Neuropixels_GUI_data. Override it before 
 
 ## Arduino firmware
 
-The camera TTL sketch is Arduino_codes/Camera TTL code/cam_trigger_szymon.ino; edit TRIGGER_PINS to match the rig.
-
-The somatosensory controller sketches target Arduino UNO R4 hardware and require these Arduino libraries:
+The repository contains one Arduino sketch: Somatosensory_stim_Arduino_code/Somatosensory_stim_Arduino_code.ino. It targets Arduino UNO R4 hardware and requires these Arduino libraries:
 
 - [U8g2](https://github.com/olikraus/u8g2)
 - [TMCStepper](https://github.com/teemuatlut/TMCStepper)
 - [GPT_Stepper](https://github.com/delta-G/GPT_Stepper)
-
-Use Somatosensory_stim_Arduino_code.ino for the standard firmware. The no_noise and no_tiny_linear_corrections directories contain experimental variants retained for rig reproducibility.
 
 ## Generated files
 

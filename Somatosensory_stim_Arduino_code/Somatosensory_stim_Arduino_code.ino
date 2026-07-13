@@ -77,8 +77,6 @@ struct MoveCmd {
   float pos_cm = 0.0f;
   float speed_cm_s = 0.0f;
   float interval_s = -1.0f;
-  bool has_next_pos = false;
-  float next_pos_cm = 0.0f;
   int8_t dir = +1;
   char label[32] = {0};
 } curMove;
@@ -188,7 +186,7 @@ static void rotarySelectModeForSpeed(float cm_s) {
 }
 
 // ===================== LINEAR MOVES =====================
-static bool moveLinearRelativeCm(float delta_cm, bool useLimits = true) {
+static bool moveLinearRelativeCm(float delta_cm) {
   long deltaSteps = lroundf(delta_cm * 10.0f * cfg.linear_steps_per_mm);
   if (deltaSteps == 0) return true;
 
@@ -209,8 +207,8 @@ static bool moveLinearRelativeCm(float delta_cm, bool useLimits = true) {
   uint32_t t0 = millis();
   bool startedDecel = false;
   while (millis() - t0 < 30000) {
-    if (useLimits && deltaSteps > 0 && rightPressed()) { lin.stop(); bncOff(BNC_LINEAR); return true; }
-    if (useLimits && deltaSteps < 0 && leftPressed())  { lin.stop(); bncOff(BNC_LINEAR); return true; }
+    if (deltaSteps > 0 && rightPressed()) { lin.stop(); bncOff(BNC_LINEAR); return false; }
+    if (deltaSteps < 0 && leftPressed())  { lin.stop(); bncOff(BNC_LINEAR); return false; }
 
     long cur = lin.getPosition();
     long remaining = labs(targetPos - cur);
@@ -247,10 +245,11 @@ static bool homeFastToSwitch(bool goRight) {
     else         { if (confirmPressed(leftPressed))  { hit = true; break; } }
   }
 
-  lin.stop();
+  lin.setSpeed(0.0f);
+  bool stopped = waitStopped(lin, 15000);
   bncOff(BNC_LINEAR);
 
-  return hit;
+  return hit && stopped;
 }
 
 static bool homeTwoStage(bool goRight) {
@@ -258,11 +257,9 @@ static bool homeTwoStage(bool goRight) {
 
   float backoff = 0.2f;
   if (goRight) {
-    if (!moveLinearRelativeCm(-backoff, false)) return false;
-    if (rightPressed()) return false;
+    if (!moveLinearRelativeCm(-backoff)) return false;
   } else {
-    if (!moveLinearRelativeCm(+backoff, false)) return false;
-    if (leftPressed()) return false;
+    if (!moveLinearRelativeCm(+backoff)) return false;
   }
 
   float prev = cfg.lin_home_cm_s;
@@ -395,6 +392,7 @@ static bool handleRunBegin(const String& line) {
   int sp = line.indexOf(' ');
   if (sp < 0) return false;
   total_moves = (uint32_t)line.substring(sp + 1).toInt();
+  if (total_moves == 0) return false;
   current_move_index = 0;
   request_sent = false;
   return true;
@@ -415,12 +413,8 @@ static bool handleMove(const String& line, MoveCmd& out) {
   String sDir = line.substring(p3 + 1, p4);
   String sLab;
   out.interval_s = -1.0f;
-  out.has_next_pos = false;
-  out.next_pos_cm = out.pos_cm;
   if (p5 > 0 && p6 > 0 && p7 > 0) {
     out.interval_s = line.substring(p4 + 1, p5).toFloat();
-    out.has_next_pos = line.substring(p5 + 1, p6).toInt() != 0;
-    out.next_pos_cm = line.substring(p6 + 1, p7).toFloat();
     sLab = line.substring(p7 + 1);
   } else {
     sLab = line.substring(p4 + 1);
@@ -438,10 +432,12 @@ static bool doHomingAndSetZero() {
   enableMotor(EN_B);
   disableMotor(EN_A);
 
-  bool ok = homeTwoStage(false);
-  if (ok) lin.setHome();
-  disableMotor(EN_B);
-  return ok;
+  if (!homeTwoStage(false)) return false;
+
+  if (!moveLinearRelativeCm(cfg.lin_offset_cm_after_left)) return false;
+
+  lin.setHome();
+  return true;
 }
 
 // ===================== MAIN =====================
@@ -525,7 +521,7 @@ void loop() {
     case WAIT_RUN_BEGIN: break;
 
     case DO_HOMING: {
-      oledStage("HOMING...", "2-stage LEFT only", "left switch -> 0");
+      oledStage("HOMING...", "2-stage LEFT only", "then offset -> 0");
       bool ok = doHomingAndSetZero();
       if (!ok) { Serial.println("HOME_FAIL"); oledStage("HOME FAIL"); state = ERROR_STATE; break; }
       Serial.println("HOME_OK");
@@ -571,20 +567,11 @@ void loop() {
       disableMotor(EN_B);
       if (!ok) { Serial.println("MOVE_FAIL_LINEAR"); oledStage("MOVE FAIL", curMove.label, "linear"); state = ERROR_STATE; break; }
 
+      float interval_s = curMove.interval_s >= 0.0f ? curMove.interval_s : cfg.interval_s;
+      if (interval_s > 0) delay((uint32_t)lroundf(interval_s * 1000.0f));
+
       ok = runRotary(curMove.speed_cm_s, curMove.dir);
       if (!ok) { Serial.println("MOVE_FAIL_ROTARY"); oledStage("MOVE FAIL", curMove.label, "rotary"); state = ERROR_STATE; break; }
-
-      if (curMove.has_next_pos) {
-        if (fabs(curMove.next_pos_cm - curMove.pos_cm) > 0.0005f) {
-          enableMotor(EN_B);
-          ok = moveLinearToAbsCm(curMove.next_pos_cm);
-          disableMotor(EN_B);
-          if (!ok) { Serial.println("MOVE_FAIL_LINEAR_NEXT"); oledStage("MOVE FAIL", curMove.label, "next linear"); state = ERROR_STATE; break; }
-        }
-
-        float interval_s = curMove.interval_s >= 0.0f ? curMove.interval_s : cfg.interval_s;
-        if (interval_s > 0) delay((uint32_t)lroundf(interval_s * 1000.0f));
-      }
 
       current_move_index++;
       Serial.print("MOVE_DONE "); Serial.print(current_move_index);
